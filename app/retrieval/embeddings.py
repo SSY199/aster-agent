@@ -1,18 +1,18 @@
-"""Gemini embedding client wrapper. Isolated in its own file so the
-rest of retrieval never imports langchain_google_genai directly —
-makes it easy to swap providers or mock in tests.
+"""Local HuggingFace embedding model. Chosen over a hosted API
+(Gemini embeddings) after hitting repeated model-availability/version
+issues with Google's embedding endpoint — running locally removes
+network calls and API quota as a point of failure for indexing and
+for retrieval at query time.
 """
 
 from __future__ import annotations
 
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from functools import lru_cache
 
-from app.config import get_settings
+from langchain_huggingface import HuggingFaceEmbeddings
 
-
-def get_embeddings() -> GoogleGenerativeAIEmbeddings:
-    settings = get_settings()
-    return GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
-        api_key=settings.google_api_key,
-    )
+@lru_cache
+def get_embeddings() -> HuggingFaceEmbeddings:
+    # cached so the model is loaded into memory once per process,
+    # not once per call (loading has real startup cost)
+    return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
