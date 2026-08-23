@@ -21,8 +21,8 @@ class Settings(BaseSettings):
 
     # LLM
     google_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-2.0-flash"
-    embedding_model: str = "models/text-embedding-004"
+    gemini_model: str = "gemini-3.6-flash"  
+    embedding_model: str = "models/text-embedding-001"
 
     # LangSmith
     langchain_tracing_v2: bool = False
