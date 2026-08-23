@@ -22,6 +22,7 @@ from app.agent.nodes import (
     retrieve_node,
 )
 from app.agent.state import AgentState, reset_turn_scratch
+from app.observability.logging_config import log_turn
 
 
 def _reset_scratch(state: AgentState) -> dict:
@@ -84,3 +85,18 @@ def get_graph():
     if _compiled_graph is None:
         _compiled_graph = build_graph()
     return _compiled_graph
+  
+def run_turn(session_id: str, state, user_message: str):
+    """Invokes the graph and logs the turn. Preferred entrypoint over
+    calling get_graph().invoke() directly, so every turn — including
+    ones triggered from FastAPI/Streamlit later — gets logged
+    consistently in one place.
+    """
+    graph = get_graph()
+    try:
+        result = graph.invoke(state)
+        log_turn(result, user_message=user_message)
+        return result
+    except Exception as e:
+        log_turn(state, user_message=user_message, error=str(e))
+        raise
