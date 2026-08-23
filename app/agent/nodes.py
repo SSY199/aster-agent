@@ -175,6 +175,26 @@ def _infer_topic(hits) -> Topic | None:
 
 
 # ---------------------------------------------------------------------------
+# Extraction
+# ---------------------------------------------------------------------------
+def extract_text(content) -> str:
+    """Normalizes AIMessage.content, which some Gemini SDK versions
+    return as a plain string and others return as a list of content
+    blocks (e.g. [{"type": "text", "text": "..."}]). Always returns
+    plain text.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict) and "text" in item:
+                parts.append(item["text"])
+        return "".join(parts)
+    return str(content)
+# ---------------------------------------------------------------------------
 # grounding_check
 # ---------------------------------------------------------------------------
 
@@ -237,7 +257,7 @@ def respond_node(state: AgentState) -> dict:
     ]
 
     ai_response = llm.invoke(messages)
-    response_text = ai_response.content
+    response_text = extract_text(ai_response.content)
 
     if state.get("tool_result") is not None:
         # defense-in-depth: even though the sanitizer already stripped
