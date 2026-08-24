@@ -74,3 +74,29 @@ def test_retrieve_node_no_conflict_for_ordinary_query():
     state = _state_with_message("How long is the return window?")
     result = retrieve_node(state)
     assert result.get("handoff", False) is False
+    
+# add to test/test_agent.py
+
+def test_classify_intent_does_not_misfire_on_substring_order():
+    # "ordered" contains "order" as a substring — must not trigger
+    # order intent for an ordinary policy question.
+    state = _state_with_message(
+        "My TrailPlus membership was active when I ordered. What is my return window?"
+    )
+    result = classify_intent(state)
+    assert result["intent"] == "policy"
+
+
+def test_classify_intent_does_not_misfire_on_substring_arrived():
+    # "arrived" contains "arrive" as a substring.
+    state = _state_with_message(
+        "A final-sale bag arrived with a broken zipper yesterday. Am I out of luck?"
+    )
+    result = classify_intent(state)
+    assert result["intent"] == "policy"
+
+
+def test_classify_intent_still_detects_real_order_word():
+    state = _state_with_message("What's the status of my order?", last_order_id="ORD-1007")
+    result = classify_intent(state)
+    assert result["intent"] == "order"

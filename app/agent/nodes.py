@@ -30,7 +30,7 @@ _ORDER_ID_RE = re.compile(r"ORD-\d{4,}", re.IGNORECASE)
 
 _ORDER_KEYWORDS = {
     "order", "shipped", "arrive", "arriving", "arrival", "delivery",
-    "delivered", "track", "tracking", "status", "where is",
+    "delivered", "track", "tracking", "status",
 }
 
 _PRIVACY_KEYWORDS = {
@@ -64,7 +64,11 @@ _TOPIC_HINT_TEXT: dict[Topic, str] = {
     "product_care": "product care",
     "order_changes": "order changes and cancellations",
 }
+_WORD_RE = re.compile(r"\b\w+\b")
 
+def _contains_keyword(text_lower: str, keywords: set[str]) -> bool:
+    words = set(_WORD_RE.findall(text_lower))
+    return bool(words & keywords)
 
 def _last_human_text(state: AgentState) -> str:
     for msg in reversed(state.get("messages", [])):
@@ -91,7 +95,7 @@ def classify_intent(state: AgentState) -> dict:
     order_id_match = _ORDER_ID_RE.search(text)
     extracted_id = normalize_order_id(order_id_match.group()) if order_id_match else None
 
-    mentions_order_topic = any(kw in text_lower for kw in _ORDER_KEYWORDS)
+    mentions_order_topic = _contains_keyword(text_lower, _ORDER_KEYWORDS)
 
     if extracted_id:
         return {"intent": "order", "current_order_id": extracted_id, "last_order_id": extracted_id}
@@ -125,7 +129,7 @@ def order_tool_node(state: AgentState) -> dict:
         update["handoff_reason"] = "order_not_found"
 
     text_lower = _last_human_text(state).lower()
-    if any(kw in text_lower for kw in _PRIVACY_KEYWORDS):
+    if _contains_keyword(text_lower, _PRIVACY_KEYWORDS):
         update["handoff"] = True
         update["handoff_reason"] = "privacy_disclosure_request"
 
@@ -144,7 +148,7 @@ def retrieve_node(state: AgentState) -> dict:
     if last_topic and _is_short_followup(text) and last_topic in _TOPIC_HINT_TEXT:
         query = f"{_TOPIC_HINT_TEXT[last_topic]} — {text}"
 
-    hits = retrieve(query, k=6)
+    hits = retrieve(query, k=8)
 
     injection_flags: list[str] = []
     for chunk in hits:
@@ -197,7 +201,7 @@ def extract_text(content) -> str:
 # ---------------------------------------------------------------------------
 # grounding_check
 # ---------------------------------------------------------------------------
-
+_DAMAGE_KEYWORDS = {"broken", "damaged", "defective", "zipper", "torn", "cracked"}
 def grounding_check(state: AgentState) -> dict:
     """For policy-intent turns: if nothing authoritative was
     retrieved, the answer must abstain rather than let the LLM fill
@@ -210,6 +214,10 @@ def grounding_check(state: AgentState) -> dict:
     grounded = authoritative_chunks(state.get("retrieved", []))
     if not grounded and not state.get("conflicts"):
         return {"handoff": True, "handoff_reason": "insufficient_information"}
+
+    text_lower = _last_human_text(state).lower()
+    if _contains_keyword(text_lower, _DAMAGE_KEYWORDS):
+        return {"handoff": True, "handoff_reason": "damage_review_required"}
 
     return {}
 

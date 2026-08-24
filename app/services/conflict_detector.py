@@ -58,7 +58,8 @@ def check_conflicts(chunks: list[RetrievedChunk]) -> list[ConflictResult]:
     if one side were superseded, precedence.rank_by_authority would
     have handled it, so we only need to check authoritative chunks.
     """
-    authoritative = [c for c in chunks if is_authoritative(c)]
+    relevant = [c for c in chunks if c.score >= 0.02]
+    authoritative = [c for c in relevant if is_authoritative(c)]
     by_filename: dict[str, list[RetrievedChunk]] = {}
     for c in authoritative:
         by_filename.setdefault(c.filename, []).append(c)

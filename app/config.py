@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from pydantic import SecretStr 
 
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,13 +19,16 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # LLM
-    google_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-3.6-flash"  
+
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
+    google_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash-lite"
     embedding_model: str = "models/text-embedding-001"
 
     # LangSmith
     langchain_tracing_v2: bool = False
-    langchain_api_key: SecretStr | None = None
+    langchain_api_key: str = ""
     langchain_project: str = ""
 
     # Data paths — relative paths are resolved against project root,
