@@ -87,6 +87,7 @@ def _is_short_followup(text: str) -> bool:
 # ---------------------------------------------------------------------------
 # classify_intent
 # ---------------------------------------------------------------------------
+_ORDER_VERB_PATTERN = re.compile(r"\bif\s+i\s+order\b|\bwhen\s+i\s+order\b|\bi\s+order\b", re.IGNORECASE)
 
 def classify_intent(state: AgentState) -> dict:
     text = _last_human_text(state)
@@ -95,13 +96,13 @@ def classify_intent(state: AgentState) -> dict:
     order_id_match = _ORDER_ID_RE.search(text)
     extracted_id = normalize_order_id(order_id_match.group()) if order_id_match else None
 
-    mentions_order_topic = _contains_keyword(text_lower, _ORDER_KEYWORDS)
+    is_order_verb_usage = bool(_ORDER_VERB_PATTERN.search(text_lower))
+    mentions_order_topic = _contains_keyword(text_lower, _ORDER_KEYWORDS) and not is_order_verb_usage
 
     if extracted_id:
         return {"intent": "order", "current_order_id": extracted_id, "last_order_id": extracted_id}
 
     if mentions_order_topic and state.get("last_order_id"):
-        # follow-up like "When will it arrive?" after an earlier lookup
         return {"intent": "order", "current_order_id": state["last_order_id"]}
 
     if mentions_order_topic and not state.get("last_order_id"):

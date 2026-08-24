@@ -100,3 +100,13 @@ def test_classify_intent_still_detects_real_order_word():
     state = _state_with_message("What's the status of my order?", last_order_id="ORD-1007")
     result = classify_intent(state)
     assert result["intent"] == "order"
+    
+def test_classify_intent_order_as_verb_not_misclassified():
+    state = _state_with_message("If I order to Canada, will I owe customs duties?")
+    result = classify_intent(state)
+    assert result["intent"] == "policy"
+
+def test_classify_intent_missing_order_id_still_works():
+    state = _state_with_message("Where is my order?")
+    result = classify_intent(state)
+    assert result["intent"] == "order_missing_id"
