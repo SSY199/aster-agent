@@ -31,7 +31,7 @@ def _normalize(text: str) -> str:
     '45-calendar-day' matches a check for '45 calendar days' and
     similar surface variations don't cause false failures.
     """
-    text = re.sub(r"[-–—‑]", " ", text)  # added U+2011 (non-breaking hyphen)
+    text = re.sub(r"[-–—‑]", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip().lower()
 
