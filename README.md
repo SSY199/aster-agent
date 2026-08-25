@@ -335,7 +335,11 @@ Claude (Anthropic) was used throughout for architecture design, code generation,
 
 ## 🎬 Demo
 
-A short walkthrough demonstrating the core reliability guarantees:
+▶️ [Watch the demo](demo/demo.mp4)
+
+Shows: a return-window policy question with citations, an order
+lookup, multi-turn context (shipping → Canada follow-up), and the
+Breeze Tumbler source conflict correctly triggering a human handoff.
 
 - Knowledge-base question with authoritative source citations
 - Sanitized order lookup
