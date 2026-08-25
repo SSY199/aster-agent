@@ -46,8 +46,8 @@ Built for a take-home assignment simulating a real support deployment: the knowl
 | Python 3.13 + uv | Core language, dependency/environment management |
 | LangGraph | Agent control flow / state machine |
 | LangChain | LLM and retrieval integration |
-| Groq (`llama-3.3-70b-versatile`) | LLM generation |
-| sentence-transformers (local) | Embeddings — offline, no API key required |
+| Groq (`openai/gpt-oss-120b`) | LLM generation |
+| sentence-transformers (HuggingFace, local) | Embeddings — offline, no API key required |
 | FAISS | Dense vector search |
 | rank-bm25 | Sparse keyword search |
 | FastAPI | Agent-serving API |
@@ -57,103 +57,73 @@ Built for a take-home assignment simulating a real support deployment: the knowl
 | LangSmith (optional) | Tracing |
 
 ## Architecture
-                ┌──────────────────┐
-                │  Streamlit UI    │
-                └────────┬─────────┘
-                         │ HTTP
-                         ▼
-                ┌──────────────────┐
-                │   FastAPI /chat  │
-                └────────┬─────────┘
-                         ▼
-                ┌──────────────────┐
-                │  LangGraph Agent │
-                └────────┬─────────┘
-                         │
-                reset_scratch
-                         │
-                classify_intent (deterministic)
-                         │
-          ┌──────────────┴──────────────┐
-          ▼                             ▼
-  order_tool_node                retrieve_node
-  (deterministic)          (hybrid FAISS+BM25 → precedence
-          │                  → conflict check → injection flag)
-          │                             │
-          │                     grounding_check
-          │                    (deterministic)
-          │                             │
-          └──────────────┬──────────────┘
-                         ▼
-                  respond_node
-               (only LLM call — Groq)
-                         │
-                         ▼
-                 answer + sources + handoff
+
+```mermaid
+graph TD
+    UI[Streamlit UI] -->|HTTP| API[FastAPI /chat]
+    API --> Agent[LangGraph Agent]
+    Agent --> Reset[reset_scratch]
+    Reset --> Classify[classify_intent<br/>deterministic]
+    Classify -->|order intent| OrderTool[order_tool_node<br/>deterministic]
+    Classify -->|policy intent| Retrieve[retrieve_node<br/>hybrid FAISS+BM25 → precedence<br/>→ conflict check → injection flag]
+    Retrieve --> Ground[grounding_check<br/>deterministic]
+    OrderTool --> Respond[respond_node<br/>only LLM call — Groq]
+    Ground --> Respond
+    Respond --> Out[answer + sources + handoff]
+```
 
 ### Retrieval pipeline
 
-knowledge-base/*.md
-│
-loader.py (parse front matter: status, policy_authority, supersedes)
-│
-chunker.py (heading-aware split, metadata carried per chunk)
-│
-┌────┴────┐
-▼ ▼
-FAISS BM25
-│ │
-└────┬────┘
-▼
-Reciprocal Rank Fusion
-│
-precedence.py (active+official first; supersedes-aware demotion)
-│
-conflict_detector.py (known active-vs-active contradictions)
-│
-▼
-respond_node
-
+```mermaid
+graph TD
+    KB[knowledge-base/*.md] --> Loader[loader.py<br/>parse front matter:<br/>status, policy_authority, supersedes]
+    Loader --> Chunker[chunker.py<br/>heading-aware split,<br/>metadata per chunk]
+    Chunker --> FAISS[FAISS<br/>dense search]
+    Chunker --> BM25[BM25<br/>sparse search]
+    FAISS --> RRF[Reciprocal Rank Fusion]
+    BM25 --> RRF
+    RRF --> Precedence[precedence.py<br/>active+official first;<br/>supersedes-aware demotion]
+    Precedence --> Conflict[conflict_detector.py<br/>known active-vs-active<br/>contradictions]
+    Conflict --> Respond[respond_node]
+```
 
 ### Order lookup pipeline
 
-data/orders.json (never sent to the LLM)
-│
-order_lookup.py (normalize ID, validate, read record)
-│
-order_sanitizer.py (allow-list only: status, carrier, tracking,
-ETA, safe message — no PII, no internal fields)
-│
-▼
-OrderLookupResult → respond_node
-
+```mermaid
+graph TD
+    Orders[data/orders.json<br/>never sent to the LLM] --> Lookup[order_lookup.py<br/>normalize ID, validate, read record]
+    Lookup --> Sanitizer[order_sanitizer.py<br/>allow-list only: status, carrier,<br/>tracking, ETA, safe message —<br/>no PII, no internal fields]
+    Sanitizer --> Result[OrderLookupResult]
+    Result --> Respond[respond_node]
+```
 
 ## Project Structure
 
+```
 .
 ├── app/
-│ ├── agent/ # state.py, nodes.py, graph.py, llm.py, prompts.py
-│ ├── retrieval/ # loader, chunker, embeddings, vector_store,
-│ │ bm25_store, hybrid_retriever, precedence, retriever
-│ ├── tools/ # order_lookup.py, order_sanitizer.py
-│ ├── services/ # conflict_detector.py, safety.py
-│ ├── schemas/ # chat.py, order.py
-│ ├── observability/ # logging_config.py
-│ ├── ui/ # streamlit_app.py
-│ ├── config.py
-│ └── main.py # FastAPI app
+│   ├── agent/          # state.py, nodes.py, graph.py, llm.py, prompts.py
+│   ├── retrieval/       # loader, chunker, embeddings, vector_store,
+│   │                     bm25_store, hybrid_retriever, precedence, retriever
+│   ├── tools/           # order_lookup.py, order_sanitizer.py
+│   ├── services/        # conflict_detector.py, safety.py
+│   ├── schemas/         # chat.py, order.py
+│   ├── observability/   # logging_config.py
+│   ├── ui/               # streamlit_app.py
+│   ├── config.py
+│   └── main.py           # FastAPI app
 ├── scripts/
-│ └── build_index.py
+│   └── build_index.py
 ├── evaluation/
-│ ├── visible-cases.json
-│ ├── custom-cases.json
-│ ├── run_eval.py
-│ └── results/
+│   ├── visible-cases.json
+│   ├── custom-cases.json
+│   ├── run_eval.py
+│   └── results/
 ├── data/orders.json
 ├── knowledge-base/*.md
 ├── test/
 └── .streamlit/config.toml
-
+```
 
 ## Installation
 
@@ -171,7 +141,7 @@ cp .env.example .env
 GROQ_API_KEY=YOUR_GROQ_KEY
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_API_KEY= YOUR_LANGSMITH_KEY
+LANGSMITH_API_KEY=YOUR_LANGSMITH_KEY
 LANGSMITH_PROJECT=YOUR_LANGSMITH_PROJECT_KEY
 
 KB_DIR=knowledge-base
@@ -202,46 +172,54 @@ uv run streamlit run app/ui/streamlit_app.py
 
 ### Policy question
 
-User: "How long is the return window?"
-│
-classify_intent → "policy"
-│
-retrieve_node → hybrid search → precedence ranking
-│
-grounding_check → authoritative content found? proceed.
-│
-respond_node → Groq generates answer from
-retrieved context only, cites source
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as classify_intent
+    participant R as retrieve_node
+    participant G as grounding_check
+    participant L as respond_node (Groq)
 
+    U->>C: "How long is the return window?"
+    C->>R: intent = policy
+    R->>R: hybrid search → precedence ranking
+    R->>G: retrieved + ranked chunks
+    G->>L: authoritative content found — proceed
+    L->>U: answer grounded in retrieved context, cites source
+```
 
 ### Order lookup
 
-User: "Where is ORD-1007?"
-│
-classify_intent → extracts "ORD-1007", intent = "order"
-│
-order_tool_node → order_lookup.py reads orders.json,
-returns sanitized result only
-│
-respond_node → answer grounded in tool result,
-no source citation needed (not KB-derived)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as classify_intent
+    participant T as order_tool_node
+    participant L as respond_node (Groq)
 
+    U->>C: "Where is ORD-1007?"
+    C->>T: extracts "ORD-1007", intent = order
+    T->>T: order_lookup.py reads orders.json,<br/>returns sanitized result only
+    T->>L: OrderLookupResult
+    L->>U: answer grounded in tool result<br/>(no source citation needed — not KB-derived)
+```
 
 ### Genuine source conflict
 
-User: "Can I put the Breeze Tumbler in the dishwasher?"
-│
-retrieve_node → both 11-product-care.md and
-12-breeze-tumbler-product-card.md retrieved,
-both active + official
-│
-check_conflicts() → registered conflict rule fires
-│
-handoff = True, reason = "source_conflict"
-│
-respond_node → explains the disagreement, does NOT
-silently pick one, recommends human confirmation
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant R as retrieve_node
+    participant CD as check_conflicts()
+    participant L as respond_node (Groq)
 
+    U->>R: "Can I put the Breeze Tumbler in the dishwasher?"
+    R->>R: retrieves 11-product-care.md AND<br/>12-breeze-tumbler-product-card.md<br/>(both active + official)
+    R->>CD: retrieved chunks
+    CD->>CD: registered conflict rule fires
+    CD->>L: handoff=True, reason="source_conflict"
+    L->>U: explains the disagreement,<br/>does NOT silently pick one,<br/>recommends human confirmation
+```
 
 ## Running the Evaluation Suite
 
@@ -350,6 +328,10 @@ Baseline and final runs produced identical numbers — the deterministic parts o
 **Observability**
 - [ ] `/debug/{session_id}` endpoint exposing structured turn logs directly, not just file-based
 - [ ] Token/cost tracking per turn
+
+## AI Coding Tools Used
+
+Claude (Anthropic) was used throughout for architecture design, code generation, debugging, and this documentation. One example of an incorrect AI suggestion: an early recommendation to use `models/text-embedding-004` for Gemini embeddings was based on outdated model naming — that endpoint doesn't exist under that name, and the actual fix (switching to local `sentence-transformers` embeddings) was found by testing directly against the live API rather than trusting the suggestion.
 
 ## Demo
 
