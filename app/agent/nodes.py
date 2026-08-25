@@ -66,6 +66,7 @@ _TOPIC_HINT_TEXT: dict[Topic, str] = {
 }
 _WORD_RE = re.compile(r"\b\w+\b")
 
+
 def _contains_keyword(text_lower: str, keywords: set[str]) -> bool:
     words = set(_WORD_RE.findall(text_lower))
     return bool(words & keywords)
@@ -73,7 +74,7 @@ def _contains_keyword(text_lower: str, keywords: set[str]) -> bool:
 def _last_human_text(state: AgentState) -> str:
     for msg in reversed(state.get("messages", [])):
         if isinstance(msg, HumanMessage):
-            return msg.content
+            return str(msg.content)
     return ""
 
 
@@ -103,12 +104,14 @@ def classify_intent(state: AgentState) -> dict:
         return {"intent": "order", "current_order_id": extracted_id, "last_order_id": extracted_id}
 
     if mentions_order_topic and state.get("last_order_id"):
-        return {"intent": "order", "current_order_id": state["last_order_id"]}
+        return {"intent": "order", "current_order_id": state.get("last_order_id")}
 
     if mentions_order_topic and not state.get("last_order_id"):
         return {"intent": "order_missing_id", "current_order_id": None}
 
     return {"intent": "policy", "current_order_id": None}
+
+    
 
 
 # ---------------------------------------------------------------------------
@@ -116,10 +119,10 @@ def classify_intent(state: AgentState) -> dict:
 # ---------------------------------------------------------------------------
 
 def order_tool_node(state: AgentState) -> dict:
-    if state["intent"] == "order_missing_id":
+    if state.get("intent") == "order_missing_id":
         return {"needs_order_id": True, "tool_result": None}
 
-    order_id = state["current_order_id"]
+    order_id = state.get("current_order_id")
     settings = get_settings()
     result = lookup_order(order_id, str(settings.orders_path_resolved))
 
@@ -149,14 +152,14 @@ def retrieve_node(state: AgentState) -> dict:
     if last_topic and _is_short_followup(text) and last_topic in _TOPIC_HINT_TEXT:
         query = f"{_TOPIC_HINT_TEXT[last_topic]} — {text}"
 
-    hits = retrieve(query, k=10)
+    hits = retrieve(query, k=8)
 
     injection_flags: list[str] = []
     for chunk in hits:
         injection_flags.extend(detect_injection_attempt(chunk.text))
     injection_flags.extend(detect_injection_attempt(text))
 
-    conflicts = check_conflicts(hits[:3])
+    conflicts = check_conflicts(hits)
 
     update: dict = {"retrieved": hits, "injection_flags": injection_flags, "conflicts": conflicts}
 

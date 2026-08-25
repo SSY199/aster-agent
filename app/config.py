@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # LLM
 
     groq_api_key: str = ""
-    groq_model: str = "openai/gpt-oss-120b"
+    groq_model: str = "openai/gpt-oss-20b"
     google_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
     embedding_model: str = "models/text-embedding-001"

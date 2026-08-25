@@ -333,9 +333,16 @@ Baseline and final runs produced identical numbers — the deterministic parts o
 
 Claude (Anthropic) was used throughout for architecture design, code generation, debugging, and this documentation. One example of an incorrect AI suggestion: an early recommendation to use `models/text-embedding-004` for Gemini embeddings was based on outdated model naming — that endpoint doesn't exist under that name, and the actual fix (switching to local `sentence-transformers` embeddings) was found by testing directly against the live API rather than trusting the suggestion.
 
-## Demo
+## 🎬 Demo
 
-`demo/demo.gif` — knowledge-base question with citations, an order lookup, a multi-turn conversation, the Breeze Tumbler conflict correctly triggering human handoff, and the evaluation suite running.
+A short walkthrough demonstrating the core reliability guarantees:
+
+- Knowledge-base question with authoritative source citations
+- Sanitized order lookup
+- Multi-turn conversation context
+- Genuine source conflict → human handoff
+- Prompt-injection resistance
+- Deterministic evaluation suite
 
 ## Author
 
