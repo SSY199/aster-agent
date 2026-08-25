@@ -4,6 +4,10 @@ A reliability-first AI customer support agent built with LangGraph, hybrid RAG (
 
 Built for a take-home assignment simulating a real support deployment: the knowledge base contains superseded policies, internal-only notes, and two genuinely contradictory active documents on purpose.
 
+## Demo
+
+▶️ [Watch the demo](https://raw.githubusercontent.com/SSY199/aster-agent/main/demo/demo.mp4)
+
 ## Features
 
 ### 🧭 Deterministic Agent Routing
