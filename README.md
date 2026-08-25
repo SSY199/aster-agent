@@ -329,9 +329,9 @@ Baseline and final runs produced identical numbers — the deterministic parts o
 - [ ] `/debug/{session_id}` endpoint exposing structured turn logs directly, not just file-based
 - [ ] Token/cost tracking per turn
 
-## AI Coding Tools Used
+<!-- ## AI Coding Tools Used
 
-Claude (Anthropic) was used throughout for architecture design, code generation, debugging, and this documentation. One example of an incorrect AI suggestion: an early recommendation to use `models/text-embedding-004` for Gemini embeddings was based on outdated model naming — that endpoint doesn't exist under that name, and the actual fix (switching to local `sentence-transformers` embeddings) was found by testing directly against the live API rather than trusting the suggestion.
+Claude (Anthropic) was used throughout for architecture design, code generation, debugging, and this documentation. One example of an incorrect AI suggestion: an early recommendation to use `models/text-embedding-004` for Gemini embeddings was based on outdated model naming — that endpoint doesn't exist under that name, and the actual fix (switching to local `sentence-transformers` embeddings) was found by testing directly against the live API rather than trusting the suggestion. -->
 
 ## 🎬 Demo
 
