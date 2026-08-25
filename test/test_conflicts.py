@@ -36,3 +36,14 @@ def test_unrelated_chunks_produce_no_conflict():
     shipping = _chunk("05-domestic-shipping.md", "Orders ship in 1-2 business days.")
     results = check_conflicts([warranty, shipping])
     assert results == []
+      
+def test_weak_match_does_not_trigger_conflict_when_scoped_to_top_chunks():
+    strong_unrelated = _chunk("11-product-care.md", "Spot-clean fabric bags with mild soap.")
+    strong_unrelated.score = 0.033
+    weak_tumbler_a = _chunk("11-product-care.md", "hand-washed")
+    weak_tumbler_a.score = 0.016
+    weak_tumbler_b = _chunk("12-breeze-tumbler-product-card.md", "dishwasher safe")
+    weak_tumbler_b.score = 0.015
+    # only top-3 by whatever order retrieve_node would pass in
+    results = check_conflicts([strong_unrelated, weak_tumbler_a, weak_tumbler_b][:1])
+    assert results == []

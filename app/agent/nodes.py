@@ -149,14 +149,14 @@ def retrieve_node(state: AgentState) -> dict:
     if last_topic and _is_short_followup(text) and last_topic in _TOPIC_HINT_TEXT:
         query = f"{_TOPIC_HINT_TEXT[last_topic]} — {text}"
 
-    hits = retrieve(query, k=8)
+    hits = retrieve(query, k=10)
 
     injection_flags: list[str] = []
     for chunk in hits:
         injection_flags.extend(detect_injection_attempt(chunk.text))
     injection_flags.extend(detect_injection_attempt(text))
 
-    conflicts = check_conflicts(hits)
+    conflicts = check_conflicts(hits[:3])
 
     update: dict = {"retrieved": hits, "injection_flags": injection_flags, "conflicts": conflicts}
 

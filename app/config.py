@@ -27,9 +27,9 @@ class Settings(BaseSettings):
     embedding_model: str = "models/text-embedding-001"
 
     # LangSmith
-    langchain_tracing_v2: bool = False
-    langchain_api_key: str = ""
-    langchain_project: str = ""
+    langsmith_tracing: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = ""
 
     # Data paths — relative paths are resolved against project root,
     # so behavior doesn't depend on the working directory `uv run` is
