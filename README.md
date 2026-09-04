@@ -7,6 +7,7 @@ Built for a take-home assignment simulating a real support deployment: the knowl
 ## 🎬 Demo
 
 ▶️ [Watch the demo](https://raw.githubusercontent.com/SSY199/aster-agent/main/demo/demo.mp4)
+▶️ [Watch the demo on YouTube](https://youtu.be/glUZ-YL6VqM)
 
 ## Features
 
